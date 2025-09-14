@@ -13,6 +13,7 @@ class CustomUser(AbstractUser):
         max_length=10,
         choices=Role.choices,
         default=Role.PATIENT,)
+    hospital_name=models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return f"{self.username} ({self.role})"
 
@@ -35,9 +36,34 @@ class PatientProfile(models.Model):
     date_of_birth = models.DateField()
     existing_conditions = models.TextField(blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+    
+
+class Hospital(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='hospital_profile'  
+    )
+    name = models.CharField(max_length=255)
+    address = models.TextField()
+    phone = models.CharField(max_length=20)
+    email=models.EmailField(max_length=255,null=True,blank=True)
+
+    recents_patients = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='recent_patients')
+
+    def __str__(self):
+        return self.name
+
+class Doctor(models.Model):
+    user=models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='doctor_profile')
+    specialization=models.CharField(max_length=255)
+    license_number=models.CharField(max_length=255,unique=True)
+    hospital=models.ForeignKey(Hospital, on_delete=models.SET_NULL, null=True,related_name='doctors')
+    def __str__(self):
+        return f"Profile of {self.user.username}"
+

@@ -1,0 +1,67 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django-specific files
+*.log
+*.pot
+*.pyc
+*.pyo
+
+# SQLite database (if using SQLite)
+db.sqlite3
+*.sqlite3
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Django migrations (optional: only ignore compiled files)
+*/migrations/__pycache__/
+# Optional: ignore all migrations (not recommended for team projects)
+# */migrations/*.py
+
+# Media (user-uploaded files)
+media/
+# Or if you use a custom path:
+# path/to/your/media/
+
+# Static files (if collected in a folder)
+staticfiles/
+static_root/
+
+# Node modules (if using React, Tailwind, etc.)
+node_modules/
+
+# Virtual environment folders
+venv/
+env/
+.venv/
+ENV/
+
+# VS Code and PyCharm
+.vscode/
+.idea/
+
+# macOS system files
+.DS_Store
+
+# Coverage, testing, profiling tools
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+coverage.xml
+
+# MyPy and other tools
+.mypy_cache/
+.dmypy.json
+.pyre/
+
+# Docker-related
+*.pid
+*.tar
+__pycache__/
+celerybeat-schedule
