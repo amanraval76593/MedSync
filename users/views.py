@@ -1,5 +1,3 @@
-from django.shortcuts import render
-from fastapi.encoders import jsonable_encoder
 from rest_framework import generics,status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 

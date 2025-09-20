@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: medsync-db
+    restart: always
+    environment:
+      POSTGRES_DB: medsync
+      POSTGRES_USER: meduser
+      POSTGRES_PASSWORD: medpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - medsync-network
+
+  web:
+    build: .
+    container_name: medsync-web
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    environment:
+      DB_NAME: medsync
+      DB_USER: meduser
+      DB_PASSWORD: medpass
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      - db
+    networks:
+      - medsync-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: medsync-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+      
+    networks:
+      - medsync-network
+
+volumes:
+  postgres_data:
+
+networks:
+  medsync-network:
