@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from rest_framework import serializers
 from django.utils import timezone
 from .tasks import send_visit_reminder
-from users.models import CustomUser
+from users.models import CustomUser, Doctor
 from .models import AssignedDoctor, DiagnosisCase, DiagnosisVisit, Attachment, ScheduledVisit
 
 
@@ -63,13 +63,22 @@ class DiagnosisVisitCreateSerializer(serializers.ModelSerializer):
     #     if attrs['doctor'].role != 'DOCTOR':
     #         raise serializers.ValidationError("Selected user is not a doctor.")
     #     return attrs
-
 class DiagnosisCaseDetailSerializer(serializers.ModelSerializer):
     visits = DiagnosisVisitSerializer(many=True, read_only=True)
+    doctor_name = serializers.SerializerMethodField()
 
     class Meta:
         model = DiagnosisCase
-        fields = ['id', 'patient', 'doctor', 'hospital', 'title', 'created_at', 'visits']
+        fields = ['id', 'patient', 'doctor', 'hospital', 'title', 'created_at', 'visits', 'doctor_name']
+
+    def get_doctor_name(self, obj):
+        doctor = obj.doctor 
+        # doctor=Doctor.objects.get(id=doctor_id)
+        print(doctor) 
+        if doctor: 
+            return f"{doctor.first_name} {doctor.last_name}"
+        return None
+
 
 
 class AssignDoctorSerializer(serializers.Serializer):
@@ -112,13 +121,12 @@ class DiagnosisCaseSummarySerializer(serializers.ModelSerializer):
     doctor = serializers.SerializerMethodField()
     visits = DiagnosisVisitSerializer(many=True, read_only=True)
 
-
     class Meta:
         model = DiagnosisCase
         fields = ['id', 'title', 'doctor', 'hospital','description', 'created_at', 'visits']
 
     def get_doctor(self, obj):
-        return obj.doctor.username if obj.doctor else None
+        return f"{obj.doctor.first_name} {obj.doctor.last_name}" if obj.doctor else None
     
 # medical/serializers.py
 
