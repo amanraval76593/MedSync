@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
+import cloudinary.uploader
 from rest_framework import serializers
 from django.utils import timezone
 from .tasks import send_visit_reminder
 from users.models import CustomUser, Doctor
-from .models import AssignedDoctor, DiagnosisCase, DiagnosisVisit, Attachment, ScheduledVisit
+from .models import AssignedDoctor, DiagnosisCase, DiagnosisVisit, Attachment, ScheduledVisit, VisitDocument
+from .cloudinary_config import cloudinary
+from cloudinary.utils import cloudinary_url
+
+# import cloudinary.uploader
+
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
@@ -12,17 +18,21 @@ class AttachmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'file', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
+class VisitDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=VisitDocument
+        fields = ['id', 'document_type', 'file_url', 'uploaded_at']
+        read_only_fields = ['id', 'updated_at']
 class DiagnosisVisitSerializer(serializers.ModelSerializer):
-    attachments = AttachmentSerializer(many=True, read_only=True)
+    documents=VisitDocumentSerializer(many=True, read_only=True)
     doctor_name=serializers.SerializerMethodField()
 
     class Meta:
         model = DiagnosisVisit
-        fields = ['id', 'visit_date', 'notes', 'updated_at', 'attachments','doctor_name','medications']
+        fields = ['id', 'visit_date', 'notes', 'updated_at', 'attachments','doctor_name','medications','documents']
         read_only_fields = ['id', 'updated_at']
     def get_doctor_name(self, obj):
         return obj.doctor.get_full_name() if obj.doctor else None
-
 
 class DiagnosisCaseSerializer(serializers.ModelSerializer):
     visits = DiagnosisVisitSerializer(many=True, read_only=True)
@@ -51,7 +61,8 @@ class DiagnosisCaseCreateSerializer(serializers.ModelSerializer):
         if attrs['doctor'].role != 'DOCTOR':
             raise serializers.ValidationError("Selected user is not a doctor.")
         return attrs
-    
+
+
 class DiagnosisVisitCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = DiagnosisVisit
@@ -172,19 +183,20 @@ class DoctorDiagnosisVisitCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DiagnosisVisit
-        fields = ['case_id', 'notes', 'medications']  
+        fields = ['case_id', 'notes', 'medications']
 
     def create(self, validated_data):
         request = self.context['request']
         doctor_user = request.user
         case_id = validated_data.pop('case_id')
 
+        # --- Validate diagnosis case ---
         try:
             diagnosis = DiagnosisCase.objects.get(id=case_id)
         except DiagnosisCase.DoesNotExist:
             raise serializers.ValidationError("Diagnosis case not found.")
 
-        # Check if doctor is assigned to this patient
+        # --- Validate doctor assignment ---
         patient = diagnosis.patient
         try:
             doctor_profile = doctor_user.doctor_profile
@@ -194,11 +206,50 @@ class DoctorDiagnosisVisitCreateSerializer(serializers.ModelSerializer):
         if not AssignedDoctor.objects.filter(doctor=doctor_profile, patient=patient).exists():
             raise serializers.ValidationError("You are not assigned to this patient.")
 
-        return DiagnosisVisit.objects.create(
+        # --- Create the Visit instance ---
+        visit = DiagnosisVisit.objects.create(
             case=diagnosis,
             doctor=doctor_user,
             **validated_data
         )
+
+        for key, file_obj in request.FILES.items():
+            if "documents" in key and "file" in key:
+                try:
+                    index = key.split("[")[1].split("]")[0]
+                    doc_type_key = f"documents[ {index}][documentType]"
+                    document_type = request.data.get(doc_type_key, "Other")
+
+                except Exception:
+                    document_type = "Other"
+
+                try:
+                    # Upload file to Cloudinary
+                    upload_result = cloudinary.uploader.upload(
+                        file_obj,
+                        folder="diagnosis_documents/",
+                        resource_type="raw"
+                    )
+
+                    public_id = upload_result["public_id"]
+
+                    file_url, _ = cloudinary_url(
+                        public_id,
+                        resource_type="raw",
+                        type="upload",
+                        sign_url=False
+                    )
+
+                    VisitDocument.objects.create(
+                        visit=visit,
+                        document_type=document_type,
+                        file_url=file_url
+                    )
+                except Exception as e:
+                    print("Cloudinary upload failed:", e)
+
+
+        return visit
 
 # medical/serializers.py
 

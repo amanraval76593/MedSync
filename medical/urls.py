@@ -17,7 +17,6 @@ urlpatterns = [
     path("doctor/schedule-visit/", ScheduleVisitView.as_view(), name="schedule-visit"),
     path("doctor/scheduled-visits/", DoctorTodayScheduledVisitsView.as_view(), name="doctor-today-visits"),
     path("patient/scheduled-visits/", PatientTodayScheduledVisitsView.as_view(), name="patient-today-visits"),
-
 ]
 
 

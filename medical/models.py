@@ -26,7 +26,16 @@ class DiagnosisVisit(models.Model):
 
     def __str__(self):
         return f"Visit on {self.visit_date} for {self.case.title}"
-    
+
+class VisitDocument(models.Model):
+    visit = models.ForeignKey(DiagnosisVisit, on_delete=models.CASCADE, related_name='documents')
+    document_type = models.CharField(max_length=255)
+    file_url = models.URLField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.document_type} ({self.file.name})"
+
 class Attachment(models.Model):
     visit = models.ForeignKey(DiagnosisVisit, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to='attachments/')
@@ -61,3 +70,5 @@ class ScheduledVisit(models.Model):
 
     def __str__(self):
         return f"Visit for {self.patient.username} with {self.doctor.user.username} on {self.visit_date}"
+    
+    

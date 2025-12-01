@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /code
 
 # Install dependencies
-COPY requirements.txt .
+COPY requirements.txt /code/
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
